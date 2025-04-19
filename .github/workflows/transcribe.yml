@@ -6,6 +6,8 @@ on:
       - 'audio/**.mp3'
       - 'audio/**.wav'
       - 'audio/**.m4a'
+      - '.github/workflows/transcribe.yml'
+
 
 jobs:
   transcribe:
