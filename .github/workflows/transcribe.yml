@@ -1,0 +1,46 @@
+# .github/workflows/transcribe.yml
+name: Transcribe Audio
+
+on:
+  push:
+    paths:
+      - 'audio/**.mp3'
+      - 'audio/**.wav'
+      - 'audio/**.m4a'
+
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install git+https://github.com/openai/whisper.git
+        sudo apt-get update && sudo apt-get install ffmpeg -y
+
+    - name: Transcribe audio
+      run: |
+        mkdir -p transcript
+        for f in audio/*; do
+          [ -f "$f" ] || continue
+          filename=$(basename "$f")
+          output="transcript/${filename%.*}.txt"
+          whisper "$f" --language Chinese --output_format txt --output_dir transcript
+        done
+
+    - name: Commit transcript
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git add transcript/
+        git commit -m "Add transcription" || echo "No changes to commit"
+        git push
