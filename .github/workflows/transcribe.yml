@@ -1,4 +1,3 @@
-# .github/workflows/transcribe.yml
 name: Transcribe Audio
 
 on:
@@ -32,15 +31,11 @@ jobs:
         mkdir -p transcript
         for f in audio/*; do
           [ -f "$f" ] || continue
-          filename=$(basename "$f")
-          output="transcript/${filename%.*}.txt"
           whisper "$f" --language Chinese --output_format txt --output_dir transcript
         done
 
-    - name: Commit transcript
-      run: |
-        git config user.name github-actions
-        git config user.email github-actions@github.com
-        git add transcript/
-        git commit -m "Add transcription" || echo "No changes to commit"
-        git push
+    - name: Upload transcript as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: transcribed-text
+        path: transcript/
