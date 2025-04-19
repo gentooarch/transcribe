@@ -3,11 +3,9 @@ name: Transcribe Audio
 on:
   push:
     paths:
+      - 'audio/**.m4a'
       - 'audio/**.mp3'
       - 'audio/**.wav'
-      - 'audio/**.m4a'
-      - '.github/workflows/transcribe.yml'
-
 
 jobs:
   transcribe:
@@ -28,11 +26,32 @@ jobs:
         pip install git+https://github.com/openai/whisper.git
         sudo apt-get update && sudo apt-get install ffmpeg -y
 
-    - name: Transcribe audio
+    - name: Convert audio and transcribe
       run: |
         mkdir -p transcript
+        mkdir -p temp_wav
+
+        # 转换 .m4a, .mp3 为标准 .wav
         for f in audio/*; do
           [ -f "$f" ] || continue
+          ext="${f##*.}"
+          filename=$(basename "$f")
+          name="${filename%.*}"
+
+          if [[ "$ext" == "m4a" || "$ext" == "mp3" ]]; then
+            echo "Converting $f to WAV..."
+            ffmpeg -i "$f" -ar 16000 -ac 1 -c:a pcm_s16le "temp_wav/$name.wav"
+          elif [[ "$ext" == "wav" ]]; then
+            cp "$f" "temp_wav/$name.wav"
+          else
+            echo "Skipping unsupported file: $f"
+          fi
+        done
+
+        # 识别所有 wav 文件
+        for f in temp_wav/*.wav; do
+          [ -f "$f" ] || continue
+          echo "Transcribing $f..."
           whisper "$f" --language Chinese --output_format txt --output_dir transcript
         done
 
